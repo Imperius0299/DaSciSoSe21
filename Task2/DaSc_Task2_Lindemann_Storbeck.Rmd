@@ -55,7 +55,7 @@ Anhand der Variablen ist zu erkennen, dass es sich bei den Beobachtungen um Pers
 
 Die Variable health.ins, welche angibt, ob die jeweilige Person eine Krankenversicherung hat, ist hierbei als Zielvariable zu identifizieren.
 
-## Anzahl der Leute die eine Krankenversicherung haben
+## Anzahl der Leute die keine Krankenversicherung haben
 
 ```{r healthPercent}
 sum(custdata$health.ins==FALSE)/nrow(custdata)*100
