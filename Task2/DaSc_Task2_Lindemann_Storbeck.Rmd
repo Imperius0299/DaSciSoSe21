@@ -1,0 +1,166 @@
+---
+title: "DaScTask2_Lindemann_Storbeck"
+author: "Lindemann,Timo und Storbeck, Alexander"
+date: "6/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Genutzte Packages
+Als Packeges benutzebn wir zusätzlich Data Explorer,funModeling,dplyr 
+
+```{r packeges, include=FALSE, warning=FALSE, message=FALSE}
+install.packages("DataExplorer",repos = "http://cran.us.r-project.org/")
+install.packages('funModeling',repos = "http://cran.us.r-project.org/")
+install.packages('dplyr',repos = "http://cran.us.r-project.org/")
+```
+
+```{r library, results='hide', warning=FALSE, message=FALSE}
+
+
+library(DataExplorer)
+library(funModeling)
+library(dplyr)
+```
+
+## Loading Data
+
+Als erstes werden die Customer Daten aus dem Git-Repository über die zugehörige URL geladen.
+Zusätzlich verschaffen wir uns einen ersten Überblick über diese.
+
+```{r data}
+custdata <- read.csv("https://raw.githubusercontent.com/g-rho/DaSciSoSe21/main/data/custdata.csv", header = TRUE, sep = ";")
+
+head(custdata)
+```
+
+## Anzahl der Beobachtungen
+
+Wir können erkennen, dass wir `r nrow(custdata)` Beobachtungen in den Daten haben.
+
+```{r observations}
+nrow(custdata)
+```
+
+## Variablen
+
+```{r variables}
+colnames(custdata)
+```
+Anhand der Variablen ist zu erkennen, dass es sich bei den Beobachtungen um Personden handelt, welche durch verschiedene Charakteristika ihrer Lebensumstände beschrieben sind. Diese sind zum Beispiel : Geschlecht. ob Arbeitend oder auch Einkommen.Die Variable state.of.res enthält die Bundesstaaten der USA, wodurch darauf zu schließen ist, dass es sich auch um Personen des jeweiligen Staates handelt.
+
+Die Variable health.ins, welche angibt, ob die jeweilige Person eine Krankenversicherung hat, ist hierbei als Zielvariable zu identifizieren.
+
+## Anzahl der Leute die keine Krankenversicherung haben
+
+```{r healthPercent}
+sum(custdata$health.ins==FALSE)/nrow(custdata)*100
+
+
+```
+Wie können sehen, dass `r sum(custdata$health.ins==FALSE)/nrow(custdata)*100` Prozent der Beobachtungen keine Krankenversicherung haben.
+
+
+## Anzahl der Missing Values
+
+```{r missingValuesTotal}
+sum(is.na(custdata))
+
+```
+Es fehlen 496 Values in den Daten. Das im im Vergleich zur Gesamtzahl der Values erstmal relativ wenig. Genauer gesagt `r sum(is.na(custdata))/((nrow(custdata)) * df_status(custdata) %>% select(variable) %>% count()) * 100` Prozent.
+
+
+
+```{r missingValuesPlot}
+plot_missing(custdata)
+```
+
+Wenn wir uns den Bar Chart anschauen, welcher mit einer Methode aus dem Package Data Explorer stammt, können wir genau sehen, dass der großteil der fehlenden Daten bei der Variable is.employed auftaucht. Hier fehlen ganze 32.8 % der Werte. Was wiederum relativ viel ist. Auch bei den Variablen num.vehicles, recent.move und housing.type fehelen jeweils 5.6%.
+
+Das Fehlen der vielen Werte beim Zustand, ob die Person Arbeit, ist vielleicht darauf zurückzuführen, dass nicht jeder in so einer Situation seinen jeweiligen Status dazu angeben möchte. Auch, weil häufig in den USA die Personen über den Arbeitgeber privat versichert sind.
+
+
+## Die Variablen Age und Income näher betrachtet
+
+```{r plotNum}
+plot_num(custdata, bins = 50)
+```
+
+
+```{r income}
+
+profiling_num(custdata$income) %>% select(p_75, p_95,p_99)
+
+min(custdata$income)
+max(custdata$income)
+
+```
+Allgemein ist ersteinmal beim Einkommen festzustellen, dass dieses er stark linkseitig ist und die meisten Personen, eher wenig verdiene, wenn man sich den Plot für das Income ansieht. Dies ist genauer dadurch zu sehen, dass das 75% Percentile bei 67000 liegt, während das 95% Quantile schon bei 172000 ist.
+
+Bei näherer Betrachtung des Einkommes ist festzustellen, das einige Ungereimtheiten auftreten. Einerseits ist das minimale Einkommen bei -8700 was relativ unrealistisch ist, wenn man davon ausgeht, dass es sich um normales Einkommen handelt und Schulden außer acht gelassen werden.
+
+Des Weiteren ist das maximale Einkommen bei 61500, was jetzt im ersten Momentt zwar realistisch sein kann, aber bei der Menge an Beobachtung als einziges so hohes Einkommen herraussticht und so etwaws unpassend erscheint. Auch in Zusammenhang, damit das selbst das 99% Quantile bei 382005 liegt.
+
+```{r age}
+profiling_num(custdata$age) %>% select(p_75, p_95,p_99)
+
+min(custdata$age)
+max(custdata$age)
+```
+Beim Alter ist bereits beim Plot zu erkennen, dass dort etwas nicht stimmt. Zwar scheint der großteil der Daten zwischen 20 und 100 zu liegen mi einem leicht größeren Teil um die 50 herum, wodurch hier eher eine Normalverteilung zu erkennen ist. Aber es ist zu sehen, dass wir eine Person mit dem Alter von 0 Jahren haben und mehere Person mit einem Alter weit über 100 Jahren, was aus der Logik heraus nicht hinkommen kann.
+
+
+## Krankenversicherung in Abhänigkeit vom Staat
+
+```{r aufsteigend}
+custdata %>% select(state.of.res, health.ins)%>% group_by(state.of.res) %>% summarize(hat.Health.Ins = sum(health.ins), People = n(), p = hat.Health.Ins/People * 100) %>% arrange(p)
+```
+In der Tabelle kann man sehen, dass in 49 von 50 US Statten mind. 50 Prozent der Menschen eine Krankenversicherung haben. Nur North Dakote hat als einziger Bundesstaat weniger, nämlich 0%. Dies lässt sich aber auch darauf zurückführen, dass nur eine Person, welche in diesem Staat lebt, in der Beobachtungsliste ist.
+
+```{r absteigend}
+custdata %>% select(state.of.res, health.ins)%>% group_by(state.of.res) %>% summarize(hat.Health.Ins = sum(health.ins), People = n(), p = hat.Health.Ins/People * 100) %>% arrange(-p)
+```
+Auch in absteigender Reihenfolge sind manche Staaten mit Ergebnissen von 100% an Krankenversicherten bei, wie bspw. Alaska,Delaware oder Rhode Island, welche aber kaum dort lebende Personen in den Daten hatten.
+
+## Variablen zur Erkennung der nicht vorhandenden Krankenversicherung
+
+```{r}
+ggplot(custdata, aes(x=health.ins,y=age)) + geom_boxplot(outlier.colour = "red", outlier.shape = 10, outlier.size = 6)
+```
+Im Boxplot, welcher das Verhältins von Krankenversicherung zum Alter abbildet, ist zu erkennen, dass Personen die jünger sind eher weniger häufig eine Krankenversicherung haben, als Personen die Älter sind, wobei hier noch die Outliers mit zu beachten sind.
+
+```{r}
+ggplot(custdata, aes(x=health.ins,y=income)) + geom_boxplot(outlier.colour = "red", outlier.shape = 10, outlier.size = 6)
+```
+Beim Boxplot der das Verhältis zw. Krankenversicherung zu Einkommen abbildet, ist auch zu erkennen, dass Personen mit höherem Einkommen eher eine Krankenversicerun haben als solche mit niedrigem, auch wenn man hier wieder sieht, dass wir viele Outliers im hochen Einkommensbereich haben.
+
+```{r}
+mosaicplot(~sex+health.ins, data = custdata, col = c("red", "green"))
+```
+Im Mosaic-Plot ist zu erkennen, dass die Abhänigkeit der Krankenversicherung vom Geschlecht hier eher vernachlässigbar ist, da zwar etwas mehr Männer keine Krankenversicherung haben, aber auch etwas mehr Beobachtungen halt Männer waren und so insgesammt kein wirklicher Unterschied vorhanden ist.
+
+
+```{r}
+mosaicplot(~recent.move+health.ins, data = custdata, col = c("red", "green"))
+```
+Im Mosaic-Plot ist zu erkennen, dass die Abhänigkeit der Krankenversicherung vom Stand, ob man vorher Umgezogen ist hier, schon eher vorhanden. Es gibt eine leichte Tendnez dazu, dass Personen, die vorher umgezogen sind, eher weniger häufig eine Krankenversicherung haben.
+
+```{r}
+mosaicplot(~housing.type+health.ins, data = custdata, col = c("red", "green"))
+```
+Auch beim Verhältnis zum Housing Type ist zu sehen, dass es einige Unterschiede gibt. Personen die ehr zur Miete wohnen oder eine Eigentumswohnung besitzen, haben eher keine Krankenversicherung, als Hausbesitzer.
+
+```{r}
+mosaicplot(~marital.stat+health.ins, data = custdata, col = c("red", "green"))
+```
+Beim Ehestatus ist zu erkennen, dass Leute die nicht verheirat sind, eher keine Krankenversicherung haben, als zum Beispiel Verheiratete oder Witwen.
+
+```{r}
+mosaicplot(~is.employed+health.ins, data = custdata, col = c("red", "green"))
+```
+
+Beim Mosaicplot, ob Personen einer Arbeit nachgehen oder nicht, ist gut zu erkennen, dass die Arbeitslosen eher keine Krankenversicherung haben als die mit Beruf.
